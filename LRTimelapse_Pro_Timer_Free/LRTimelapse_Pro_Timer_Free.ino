@@ -9,7 +9,7 @@
 #include <LiquidCrystal.h>
 #include "LCD_Keypad_Reader.h"			// credits to: http://www.hellonull.com/?p=282
 
-const String CAPTION = "Pro-Timer 0.87";
+const String CAPTION = "Pro-Timer 0.87b";
 
 LCD_Keypad_Reader keypad;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);	//Pin assignments for SainSmart LCD Keypad Shield
@@ -25,6 +25,8 @@ const int BACK_LIGHT = 10;
 
 const float RELEASE_TIME_DEFAULT = 0.1;			// default shutter release time for camera
 const float MIN_DARK_TIME = 0.5;
+
+const int BATTERY_PIN = 1;				// Analog pin for battery voltage reading
 
 const int keyRepeatRate = 100;			// when held, key repeats 1000 / keyRepeatRate times per second
 const int keySampleRate = 100;			// ms between checking keypad for key
@@ -53,6 +55,8 @@ float rampTo = 0.0;						// ramping interval
 unsigned long rampingStartTime = 0;		// ramping start time
 unsigned long rampingEndTime = 0;		// ramping end time
 float intervalBeforeRamping = 0;		// interval before ramping
+
+int batteryRead = 0;					// raw battery voltage reading (200 counts/V)
 
 boolean backLight = HIGH;				// The current settings for the backlight
 
@@ -131,8 +135,12 @@ void loop() {
       }
     }
 
-    if ( currentMenu == SCR_RUNNING ) {
-      printScreen();	// update running screen in any case
+    if ( currentMenu == SCR_INTERVAL ) {
+      batteryRead = analogRead(BATTERY_PIN);
+    }
+
+    if ( (currentMenu == SCR_INTERVAL) || (currentMenu == SCR_RUNNING ) ) {
+      printScreen();	// update interval (for battery) or running screen in any case
 
       if( mode == MODE_BULB ){
         possiblyEndLongExposure(); // checks regularly if a long exposure has to be cancelled
@@ -704,10 +712,15 @@ void printPauseMenu() {
 void printIntervalMenu() {
 
   lcd.setCursor(0, 0);
-  lcd.print("Interval        ");
-  lcd.setCursor(0, 1);
+  lcd.print("Interval ");
   lcd.print( interval );
-  lcd.print( "          " );
+  lcd.print( "     " );
+  lcd.setCursor(0, 1);
+  lcd.print("Bat. ");
+  lcd.print( (float) batteryRead / 200.0, 3 );
+  lcd.print( "V     " );
+  lcd.setCursor(12, 1);
+  lcd.print( batteryRead );
 }
 
 /**
