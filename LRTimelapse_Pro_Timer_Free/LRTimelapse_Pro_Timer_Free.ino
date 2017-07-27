@@ -27,6 +27,7 @@ const float RELEASE_TIME_DEFAULT = 0.1;			// default shutter release time for ca
 const float MIN_DARK_TIME = 0.5;
 
 const int BATTERY_PIN = 1;				// Analog pin for battery voltage reading
+const float BAT_LOW_VOLTAGE = 3.4;		// Voltage for battery low indication
 
 const int keyRepeatRate = 100;			// when held, key repeats 1000 / keyRepeatRate times per second
 const int keySampleRate = 100;			// ms between checking keypad for key
@@ -56,7 +57,7 @@ unsigned long rampingStartTime = 0;		// ramping start time
 unsigned long rampingEndTime = 0;		// ramping end time
 float intervalBeforeRamping = 0;		// interval before ramping
 
-int batteryRead = 0;					// raw battery voltage reading (200 counts/V)
+int batteryRaw = 0;						// raw battery voltage reading (200 counts/V)
 
 boolean backLight = HIGH;				// The current settings for the backlight
 
@@ -136,7 +137,7 @@ void loop() {
     }
 
     if ( currentMenu == SCR_INTERVAL ) {
-      batteryRead = analogRead(BATTERY_PIN);
+      batteryRaw = analogRead(BATTERY_PIN);
     }
 
     if ( (currentMenu == SCR_INTERVAL) || (currentMenu == SCR_RUNNING ) ) {
@@ -710,6 +711,7 @@ void printPauseMenu() {
    Configure Interval setting (main screen)
 */
 void printIntervalMenu() {
+  float voltage = (float) batteryRaw / 200.0;
 
   lcd.setCursor(0, 0);
   lcd.print("Interval ");
@@ -717,10 +719,14 @@ void printIntervalMenu() {
   lcd.print( "     " );
   lcd.setCursor(0, 1);
   lcd.print("Bat. ");
-  lcd.print( (float) batteryRead / 200.0, 3 );
-  lcd.print( "V     " );
-  lcd.setCursor(12, 1);
-  lcd.print( batteryRead );
+  lcd.print( voltage, 2 );
+  lcd.print( "V " );
+  if ( voltage < BAT_LOW_VOLTAGE ) {
+    lcd.print( "LOW!" );
+  }
+  else {
+    lcd.print( "    " );
+  }
 }
 
 /**
