@@ -9,7 +9,16 @@
 #include <LiquidCrystal.h>
 #include "LCD_Keypad_Reader.h"			// credits to: http://www.hellonull.com/?p=282
 
+// Define LRT_BATTERY_MONITOR to enable battery voltage monitoring.
+// This requires a regulated ADC reference voltage and a resistor divider on
+// the battery to an analog input pin which will produce 200 counts per volt.
+#define LRT_BATTERY_MONITOR
+
+#ifdef LRT_BATTERY_MONITOR
 const String CAPTION = "Pro-Timer 0.87b";
+#else
+const String CAPTION = "Pro-Timer 0.87";
+#endif
 
 LCD_Keypad_Reader keypad;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);	//Pin assignments for SainSmart LCD Keypad Shield
@@ -26,8 +35,10 @@ const int BACK_LIGHT = 10;
 const float RELEASE_TIME_DEFAULT = 0.1;			// default shutter release time for camera
 const float MIN_DARK_TIME = 0.5;
 
+#ifdef LRT_BATTERY_MONITOR
 const int BATTERY_PIN = 1;				// Analog pin for battery voltage reading
 const float BAT_LOW_VOLTAGE = 3.4;		// Voltage for battery low indication
+#endif
 
 const int keyRepeatRate = 100;			// when held, key repeats 1000 / keyRepeatRate times per second
 const int keySampleRate = 100;			// ms between checking keypad for key
@@ -57,7 +68,9 @@ unsigned long rampingStartTime = 0;		// ramping start time
 unsigned long rampingEndTime = 0;		// ramping end time
 float intervalBeforeRamping = 0;		// interval before ramping
 
+#ifdef LRT_BATTERY_MONITOR
 int batteryRaw = 0;						// raw battery voltage reading (200 counts/V)
+#endif
 
 boolean backLight = HIGH;				// The current settings for the backlight
 
@@ -136,12 +149,17 @@ void loop() {
       }
     }
 
+#ifdef LRT_BATTERY_MONITOR
     if ( currentMenu == SCR_INTERVAL ) {
       batteryRaw = analogRead(BATTERY_PIN);
     }
 
     if ( (currentMenu == SCR_INTERVAL) || (currentMenu == SCR_RUNNING ) ) {
       printScreen();	// update interval (for battery) or running screen in any case
+#else
+    if ( currentMenu == SCR_RUNNING ) {
+      printScreen();	// update running screen in any case
+#endif
 
       if( mode == MODE_BULB ){
         possiblyEndLongExposure(); // checks regularly if a long exposure has to be cancelled
@@ -711,6 +729,7 @@ void printPauseMenu() {
    Configure Interval setting (main screen)
 */
 void printIntervalMenu() {
+#ifdef LRT_BATTERY_MONITOR
   float voltage = (float) batteryRaw / 200.0;
 
   lcd.setCursor(0, 0);
@@ -727,6 +746,13 @@ void printIntervalMenu() {
   else {
     lcd.print( "    " );
   }
+#else
+  lcd.setCursor(0, 0);
+  lcd.print("Interval        ");
+  lcd.setCursor(0, 1);
+  lcd.print( interval );
+  lcd.print( "          " );
+#endif
 }
 
 /**
