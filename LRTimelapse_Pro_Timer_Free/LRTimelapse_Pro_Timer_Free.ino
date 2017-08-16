@@ -1,9 +1,10 @@
-
 /*
   Pro-Timer Free
   Gunther Wegner
   http://gwegner.de
   http://lrtimelapse.com
+
+  Version 0.88: Thanks for Klaus Heiss (KH) for implementing the dynamic key rate
 */
 
 #include <LiquidCrystal.h>
@@ -15,9 +16,9 @@
 #define LRT_BATTERY_MONITOR
 
 #ifdef LRT_BATTERY_MONITOR
-const String CAPTION = "Pro-Timer 0.87b";
+const String CAPTION = "Pro-Timer 0.88b";
 #else
-const String CAPTION = "Pro-Timer 0.87";
+const String CAPTION = "Pro-Timer 0.88";
 #endif
 
 LCD_Keypad_Reader keypad;
@@ -41,8 +42,6 @@ const float BAT_LOW_VOLTAGE = 3.4;		// Voltage for battery low indication
 #endif
 
 const int keyRepeatRate = 100;			// when held, key repeats 1000 / keyRepeatRate times per second
-const int keySampleRate = 100;			// ms between checking keypad for key
-
 
 int localKey = 0;						// The current pressed key
 int lastKeyPressed = -1;				// The last pressed key
@@ -138,10 +137,13 @@ void loop() {
 
     if (localKey != lastKeyPressed) {
       processKey();
+      keypad.RepeatRate = keyRepeatRateSlow;
     } else {
       // key value has not changed, key is being held down, has it been long enough?
       // (but don't process localKey = 0 = no key pressed)
-      if (localKey != 0 && millis() > lastKeyPressTime + keyRepeatRate) {
+
+      /* H.K.: implemented function ActRepeateRate instead of constant */
+      if (localKey != 0 && millis() > lastKeyPressTime + keypad.ActRepeatRate()) {
         // yes, repeat this key
         if ( (localKey == UP ) || ( localKey == DOWN ) ) {
           processKey();
@@ -802,9 +804,9 @@ void printNoOfShotsMenu() {
   if ( maxNoOfShots > 0 ) {
     lcd.print( printInt( maxNoOfShots, 4 ) );
   } else {
-    lcd.print( "----" );
+    lcd.print( "unlimited" );
   }
-  lcd.print( "            "); // clear rest of display
+  lcd.print( "       "); // clear rest of display
 }
 
 /**
