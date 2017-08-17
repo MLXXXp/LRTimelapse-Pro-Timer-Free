@@ -1,4 +1,10 @@
 /*
+  This file modified by Scott Allen with additions to display the battery voltage.
+
+  This is for hardware designed for regulated 3.3V operation and having
+  the addition of a resistor divider on the battery to an analog input.
+
+  Based on:
   Pro-Timer Free
   Gunther Wegner
   http://gwegner.de
