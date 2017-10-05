@@ -26,9 +26,9 @@
 #define LRT_BATTERY_MONITOR
 
 #ifdef LRT_BATTERY_MONITOR
-const String CAPTION = "Pro-Timer 0.89b";
+const String CAPTION = "Pro-Timer 0.91b";
 #else
-const String CAPTION = "Pro-Timer 0.89";
+const String CAPTION = "Pro-Timer 0.91";
 #endif
 
 LCD_Keypad_Reader keypad;
@@ -53,6 +53,8 @@ const float BAT_LOW_VOLTAGE = 3.4;		// Voltage for battery low indication
 #endif
 
 const int keyRepeatRate = 100;			// when held, key repeats 1000 / keyRepeatRate times per second
+
+const int decoupleTime = 1000;      // time in milliseconds to wait before doing a single bulb exposure
 
 int localKey = 0;						// The current pressed key
 int lastKeyPressed = -1;				// The last pressed key
@@ -110,7 +112,7 @@ int settingsSel = 1;					// the currently selected settings option
 int mode = MODE_M;            // mode: M or Bulb
 
 const float cMinInterval = 0.2;
-const float cMaxInterval = 99;  // no intervals longer as 99secs - those would scramble the display
+const float cMaxInterval = 999;  // no intervals longer as 999secs - those would scramble the display
 
 // K.H. LCD dimming
 const int cMinLevel     = 0;  // Min. Background Brightness Levels
@@ -118,7 +120,7 @@ const int cMaxLevel     = 5;  // Max. Background Brightness Levels
 int  act_BackLightLevel = 4;
 char act_BackLightDir   = 'D';
 
-// K.H: EPROM Params 
+// K.H: EPROM Params
 EEPParams EEProm;
 
 
@@ -149,12 +151,12 @@ void setup() {
   // check ranges
   EEProm.Params.BackgroundBrightnessLevel = constrain(EEProm.Params.BackgroundBrightnessLevel, cMinLevel,    cMaxLevel);
   EEProm.Params.Interval                  = constrain(EEProm.Params.Interval,                  cMinInterval, cMaxInterval);
-  
+
   act_BackLightLevel = EEProm.Params.BackgroundBrightnessLevel;
   interval           = EEProm.Params.Interval;
-  
+
   // wait a moment...  show CAPTION dimming
-  /* H.K.: implemented dimming */  
+  /* H.K.: implemented dimming */
   digitalWrite(BACK_LIGHT, HIGH);    // Turn backlight on.
   delay(2000);
   DimLCD(255,act_BackLightBrightness(),2);
@@ -221,7 +223,7 @@ void loop() {
 }
 
 
-/* 
+/*
   K.H: dimming LCD BAckground light
 */
 void DimLCD( byte startval, byte endval, byte stepdelay) {
@@ -236,7 +238,7 @@ void DimLCD( byte startval, byte endval, byte stepdelay) {
       analogWrite(BACK_LIGHT, bl);    // dimming backlight off.
       delay(stepdelay);
     }
-  }  
+  }
 }
 
 /**
@@ -283,14 +285,14 @@ void save_Params() {
     boolean save = false;
     act_BackLightLevel = constrain(act_BackLightLevel, cMinLevel, cMaxLevel);
     if (act_BackLightLevel != EEProm.Params.BackgroundBrightnessLevel) {
-      str = "saved level "; str += (act_BackLightLevel + 1); str += "   "; 
+      str = "saved level "; str += (act_BackLightLevel + 1); str += "   ";
       lcd.setCursor(0, 0);
       lcd.print(str);
       delay(2000);
       save = true;
     };
     if (interval != EEProm.Params.Interval) {
-      str = "saved int. "; str += String(interval, 2); str += "  "; 
+      str = "saved int. "; str += String(interval, 2); str += "  ";
       lcd.setCursor(0, 0);
       lcd.print(str);
       delay(2000);
@@ -305,7 +307,7 @@ void save_Params() {
         delay(3000);
         lcd.clear();
       }
-    } else {  
+    } else {
       lcd.setCursor(0, 0);
       lcd.print("OK, no changes");
       delay(1500);
@@ -357,15 +359,23 @@ void processKey() {
     case SCR_INTERVAL:
 
       if ( localKey == UP ) {
-        interval = (float)((int)(interval * 10) + 1) / 10; // round to 1 decimal place
-        if ( interval > cMaxInterval ) { 
+        if( interval < 20 ){
+          interval = (float)((int)(interval * 10) + 1) / 10; // round to 1 decimal place
+        } else {
+          interval = (float)((int)interval + 1); // round to 1 decimal place
+        }
+        if ( interval > cMaxInterval ) {
           interval = cMaxInterval;
         }
       }
 
       if ( localKey == DOWN ) {
         if ( interval > cMinInterval) {
-          interval = (float)((int)(interval * 10) - 1) / 10; // round to 1 decimal place
+          if( interval < 20 ){
+            interval = (float)((int)(interval * 10) - 1) / 10; // round to 1 decimal place
+          } else {
+            interval = (float)((int)interval - 1);
+          }
         }
       }
 
@@ -605,15 +615,23 @@ void processKey() {
       }
 
       if ( localKey == UP ) {
-        rampTo = (float)((int)(rampTo * 10) + 1) / 10; // round to 1 decimal place
-        if ( rampTo > cMaxInterval ) { 
+        if( rampTo < 20 ){
+          rampTo = (float)((int)(rampTo * 10) + 1) / 10; // round to 1 decimal place
+        } else {
+          rampTo = (float)((int)rampTo + 1); // round to 1 decimal place
+        }
+        if ( rampTo > cMaxInterval ) {
           rampTo = cMaxInterval;
         }
       }
 
       if ( localKey == DOWN ) {
         if ( rampTo > cMinInterval) {
-          rampTo = (float)((int)(rampTo * 10) - 1) / 10; // round to 1 decimal place
+          if( rampTo < 20 ){
+            rampTo = (float)((int)(rampTo * 10) - 1) / 10; // round to 1 decimal place
+          } else {
+            rampTo = (float)((int)rampTo - 1);
+          }
         }
       }
 
@@ -661,6 +679,10 @@ void processKey() {
 
       if ( localKey == LEFT ) {
         lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("Decoupling...");
+        delay( decoupleTime );
+        lcd.clear();
         releaseCamera();
       }
 
@@ -702,6 +724,12 @@ void stopShooting() {
 }
 
 void firstShutter() {
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Decoupling...");
+  delay( decoupleTime );
+
   previousMillis = millis();
   runningTime = 0;
   isRunning = 1;
@@ -914,7 +942,11 @@ void printIntervalMenu() {
   lcd.setCursor(0, 0);
   lcd.print("Interval        ");
   lcd.setCursor(0, 1);
-  lcd.print( interval );
+  if( interval < 20 ){
+    lcd.print( printFloat( interval, 5, 1 ) );
+  } else {
+    lcd.print( printFloat( interval, 3, 0 ) );
+  }
   lcd.print( "          " );
 #endif
 }
@@ -960,6 +992,7 @@ void printModeMenu() {
 */
 void printNoOfShotsMenu() {
 
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("No of shots");
   lcd.setCursor(0, 1);
@@ -1001,7 +1034,11 @@ void printRunningScreen() {
   } else {
     lcd.print( " " );
   }
-  lcd.print( printFloat( interval, 4, 1 ) );
+  if( interval < 100 ){ // prevent the interval display from being cut
+    lcd.print( printFloat( interval, 4, 1 ) );
+  } else {
+    lcd.print( printFloat( interval, 4, 0 ) );
+  }
 }
 
 void printDoneScreen() {
@@ -1167,11 +1204,15 @@ void printRampDurationMenu() {
 void printRampToMenu() {
 
   lcd.setCursor(0, 0);
-  lcd.print("Ramp to (Intvl)");
+  lcd.print("Ramp to (Intvl.)");
 
   lcd.setCursor(0, 1);
-  lcd.print( rampTo );
-  lcd.print( "     " );
+  if( rampTo < 20 ){
+    lcd.print( printFloat( rampTo, 5, 1 ) );
+  } else {
+    lcd.print( printFloat( rampTo, 3, 0 ) );
+  }
+  lcd.print( "             " );
 }
 
 
